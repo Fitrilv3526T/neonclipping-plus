@@ -67,3 +67,9 @@ __pycache__/
 !requirements-live.txt
 !supporters.json
 !docs/*.png
+!requirements-live.txt
+!requirements-gpu.txt
+!supporters.json
+!CHANGELOG.md
+!SECURITY.md
+!docs/*.png
