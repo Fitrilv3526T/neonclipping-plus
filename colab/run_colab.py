@@ -247,6 +247,7 @@ def main():
     if args.drive:
         step_drive()
     os.chdir(str(ROOT))
+    os.environ['PATH'] = str(DENO_BIN.parent) + os.pathsep + os.environ.get('PATH', '')
     step_apt()
     step_pip()
     step_deno()
