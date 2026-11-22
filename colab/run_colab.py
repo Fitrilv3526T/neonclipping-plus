@@ -44,7 +44,7 @@ def sh(cmd, shell=False, **kw):
     """Run a command, printing it first. Returns the CompletedProcess."""
     display = ' '.join(cmd) if isinstance(cmd, list) else cmd
     print(f'$ {display}', flush=True)
-    return subprocess.run(cmd if not shell else cmd, shell=True, **kw)
+    return subprocess.run(cmd, shell=shell, **kw)
 
 
 def which(binary):
