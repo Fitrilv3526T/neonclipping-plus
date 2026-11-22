@@ -1,0 +1,4 @@
+# Optional: live clipping (the Live panel and the creators watcher).
+# Install with:  pip install -r requirements-live.txt
+streamlink>=6.0,<8
+pytchat>=0.4,<1

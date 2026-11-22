@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f4f8" id="meta-theme">
+<title>NeonClipping - long video to captioned clips</title>
+<script>
+/* Apply the saved theme BEFORE first paint (no white flash). Wrapped in try/catch:
+   private-mode browsers throw on localStorage. */
+(function () {
+  try {
+    var saved = localStorage.getItem('nc-theme') || 'system';
+    if (saved !== 'light' && saved !== 'dark' && saved !== 'system') saved = 'system';
+  } catch (e) { var saved = 'system'; }
+  var dark = saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.documentElement.dataset.themePref = saved;
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css?v=plus1">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="brand" href="/" aria-label="NeonClipping home">
+    <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--accent)"/><text x="10" y="47" font-family="Arial Black,Arial" font-size="38" font-weight="900" fill="var(--on-accent)">N</text><path d="M34 40 L52 22 M40 22 H52 V34" stroke="var(--on-accent)" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+    <span>NeonClipping<small class="sub">LOCAL CLIP ENGINE</small></span>
+  </a>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <a class="tab" role="tab" aria-selected="true" href="#create" data-view="create">Create</a>
+    <a class="tab" role="tab" aria-selected="false" href="#library" data-view="library">Library <span class="count" id="lib-count" hidden>0</span></a>
+    <a class="tab" role="tab" aria-selected="false" href="#live" data-view="live">Live</a>
+    <a class="tab" role="tab" aria-selected="false" href="#creators" data-view="creators">Creators</a>
+  </nav>
+  <span class="grow"></span>
+  <button class="ready-dot" id="ready-dot" type="button" title="System check">
+    <span class="dot" aria-hidden="true"></span><span class="label" id="ready-label">Checking…</span>
+  </button>
+  <div class="theme-seg" role="group" aria-label="Theme">
+    <button type="button" data-theme-set="light" aria-pressed="false" title="Light theme">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12h2.5M19 12h2.5M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+      <span class="sr-only">Light</span></button>
+    <button type="button" data-theme-set="system" aria-pressed="true" title="Follow the system theme">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="13" rx="2.5"/><path d="M21 11.5v0M12 5l4.2 5H7.8z" fill="currentColor" stroke="none"/></svg>
+      <span class="sr-only">System</span></button>
+    <button type="button" data-theme-set="dark" aria-pressed="false" title="Dark theme">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></svg>
+      <span class="sr-only">Dark</span></button>
+  </div>
+  <button class="iconbtn" id="open-settings" type="button" title="Settings" aria-label="Settings" aria-haspopup="dialog">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08A1.7 1.7 0 0 0 10.12 3V3a2 2 0 1 1 4 0v.09c0 .68.4 1.29 1.03 1.56h.08a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08c.27.62.88 1.03 1.56 1.03H21a2 2 0 1 1 0 4h-.09c-.68 0-1.29.4-1.51.9z"/></svg>
+  </button>
+</header>
+
+<div class="conn-banner" id="conn-banner" hidden role="alert">
+  Connection to NeonClipping was lost. Retrying automatically… your finished clips are safe on the server.
+</div>
+
+<main id="main" class="wrap">
+  <!-- ============================ CREATE ============================ -->
+  <section class="view" id="view-create" aria-label="Create clips">
+
+    <section class="card" aria-labelledby="step1">
+      <div class="card-head"><span class="stepnum" aria-hidden="true">1</span><h2 id="step1">Add your video</h2><span class="spacer"></span><span class="muted" id="src-ready-note" hidden>Source ready</span></div>
+      <div class="row">
+        <div style="flex:2 1 340px; min-width:0">
+          <label class="field" for="url">YouTube, Twitch or Kick link</label>
+          <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" spellcheck="false" aria-describedby="url-msg">
+          <p class="inline-msg" id="url-msg" aria-live="polite"></p>
+        </div>
+        <div style="flex:1 1 170px">
+          <label class="field" for="srcq">Download quality</label>
+          <select id="srcq">
+            <option value="1080" selected>1080p (default)</option>
+            <option value="2160">4K (slow, big)</option>
+            <option value="1440">1440p</option>
+            <option value="720">720p (fast)</option>
+            <option value="480">480p (saves data)</option>
+            <option value="360">360p</option>
+          </select>
+        </div>
+        <button class="btn" id="btn-import" type="button">Get preview</button>
+      </div>
+      <div class="row" style="align-items:center; gap:14px; margin:14px 0 4px">
+        <span class="muted" style="flex:none">or</span>
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload a video file: drag and drop, or press Enter to browse">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16.5V18a2.5 2.5 0 0 0 2.5 2.5h11A2.5 2.5 0 0 0 20 18v-1.5"/></svg>
+          <b>Drop an MP4 here</b>
+          <small>or click to browse - always works, even when YouTube is blocked</small>
+          <input id="file" type="file" accept="video/*,.mkv,.webm" hidden>
+        </div>
+      </div>
+      <p class="inline-msg" id="import-msg" aria-live="polite"></p>
+      <div class="progress-track" id="import-progress-wrap" hidden style="margin-top:10px"><div class="progress-fill" id="import-progress"></div></div>
+      <div id="frames" class="grid cols-2" style="margin-top:10px"></div>
+      <details class="adv" style="margin-top:10px">
+        <summary>Only a part of the video? (optional)</summary>
+        <div class="adv-body"><div class="row">
+          <label class="field">From (h:mm:ss)<input id="part-start" type="text" placeholder="0:00:00" inputmode="numeric"></label>
+          <label class="field">To (h:mm:ss)<input id="part-end" type="text" placeholder="0:30:00" inputmode="numeric"></label>
+          <p class="muted" style="font-size:13px">Leave empty to use the whole video (up to 2 hours at once).</p>
+        </div></div>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="step2">
+      <div class="card-head"><span class="stepnum" aria-hidden="true">2</span><h2 id="step2">Choose style</h2><span class="spacer"></span><span class="muted">9:16 · 1080×1920</span></div>
+
+      <h3>Layout</h3>
+      <div class="layout-grid" id="layouts" role="group" aria-label="Layout"></div>
+
+      <h3 style="margin-top:18px">Captions</h3>
+      <div class="caption-grid" id="caption-styles" role="group" aria-label="Caption style"></div>
+      <div class="row" style="margin-top:12px">
+        <label class="field">Animation
+          <select id="caption-anim">
+            <option value="highlight" selected>Active word highlight</option>
+            <option value="karaoke">Karaoke fill</option>
+            <option value="one_by_one">One word at a time</option>
+            <option value="build_up">Build up</option>
+            <option value="pop_in">Pop in</option>
+            <option value="pop_in_line">Pop line</option>
+            <option value="full_line">Full line</option>
+          </select>
+        </label>
+        <label class="field">Caption height<input id="caption-y" type="range" min="500" max="1750" step="10" value="1450" aria-describedby="caption-y-note"></label>
+        <label class="check" style="padding-bottom:8px"><input id="caption-emoji" type="checkbox"> Add emoji to captions</label>
+      </div>
+
+      <h3 style="margin-top:18px">Clips</h3>
+      <div class="row">
+        <label class="field">How many<input id="count" type="number" min="1" max="12" value="4"></label>
+        <label class="field">Min length (s)<input id="minlen" type="number" min="5" max="120" value="30"></label>
+        <label class="field">Max length (s)<input id="length" type="number" min="10" max="180" value="60"></label>
+      </div>
+
+      <details class="adv" style="margin-top:14px">
+        <summary>Advanced (mode, language, facecam, extras…)</summary>
+        <div class="adv-body">
+          <div class="row">
+            <label class="field">Mode
+              <select id="mode"><option value="fast" selected>Fast (~2-3 min)</option><option value="deep">Deep (slower, smarter)</option></select>
+            </label>
+            <label class="field">Caption accuracy
+              <select id="accurate"><option value="fast" selected>Fast (YouTube captions when present)</option><option value="best">Best Hindi: large-v3 (slow)</option></select>
+            </label>
+            <label class="field">Spoken language
+              <select id="language"><option value="" selected>Auto (Hindi → Hinglish)</option><option value="hinglish">Hinglish (Hindi in English letters)</option><option value="hi">हिंदी (Devanagari)</option><option value="en">English</option><optgroup label="More languages" id="lang-more">
+<option value="ur">Urdu · اردو</option>
+<option value="bn">Bengali · বাংলা</option>
+<option value="ta">Tamil · தமிழ்</option>
+<option value="te">Telugu · తెలుగు</option>
+<option value="mr">Marathi · मराठी</option>
+<option value="gu">Gujarati · ગુજરાતી</option>
+<option value="kn">Kannada · ಕನ್ನಡ</option>
+<option value="ml">Malayalam · മലയാളം</option>
+<option value="pa">Punjabi · ਪੰਜਾਬੀ</option>
+<option value="ne">Nepali · नेपाली</option>
+<option value="si">Sinhala · සිංහල</option>
+<option value="ar">Arabic · العربية</option>
+<option value="fa">Persian · فارسی</option>
+<option value="he">Hebrew · עברית</option>
+<option value="tr">Turkish · Türkçe</option>
+<option value="ru">Russian · Русский</option>
+<option value="uk">Ukrainian · Українська</option>
+<option value="pl">Polish · Polski</option>
+<option value="cs">Czech · Čeština</option>
+<option value="sk">Slovak · Slovenčina</option>
+<option value="hu">Hungarian · Magyar</option>
+<option value="ro">Romanian · Română</option>
+<option value="bg">Bulgarian · Български</option>
+<option value="sr">Serbian · Српски</option>
+<option value="hr">Croatian · Hrvatski</option>
+<option value="el">Greek · Ελληνικά</option>
+<option value="de">German · Deutsch</option>
+<option value="fr">French · Français</option>
+<option value="es">Spanish · Español</option>
+<option value="pt">Portuguese · Português</option>
+<option value="it">Italian · Italiano</option>
+<option value="nl">Dutch · Nederlands</option>
+<option value="ca">Catalan · Català</option>
+<option value="sv">Swedish · Svenska</option>
+<option value="da">Danish · Dansk</option>
+<option value="no">Norwegian · Norsk</option>
+<option value="fi">Finnish · Suomi</option>
+<option value="is">Icelandic · Íslenska</option>
+<option value="id">Indonesian · Bahasa Indonesia</option>
+<option value="ms">Malay · Bahasa Melayu</option>
+<option value="tl">Filipino · Tagalog</option>
+<option value="vi">Vietnamese · Tiếng Việt</option>
+<option value="th">Thai · ไทย</option>
+<option value="zh">Chinese · 中文</option>
+<option value="ja">Japanese · 日本語</option>
+<option value="ko">Korean · 한국어</option>
+<option value="sw">Swahili · Kiswahili</option>
+<option value="af">Afrikaans · Afrikaans</option>
+<option value="am">Amharic · አማርኛ</option>
+<option value="az">Azerbaijani · Azərbaycan</option>
+</optgroup></select>
+            </label>
+          </div>
+          <div class="row">
+            <label class="field">Output format
+              <select id="aspect"><option value="vertical" selected>9:16 · Shorts / Reels</option><option value="square">1:1 · Square</option><option value="portrait">4:5 · Feed</option><option value="threefour">3:4 · Portrait</option><option value="landscape">16:9 · YouTube</option></select>
+            </label>
+            <label class="field">Resolution<select id="resolution"><option value="720">720</option><option value="1080" selected>1080</option><option value="2160">2160 · 4K</option></select>
+            </label>
+            <label class="field">Frame rate<select id="fps"><option value="0" selected>Keep original</option><option value="24">24</option><option value="30">30</option><option value="60">60</option></select>
+            </label>
+          </div>
+          <div>
+            <h3 style="margin-bottom:8px">Facecam position</h3>
+            <div class="row" id="presets" role="group" aria-label="Facecam position">
+              <button class="chip" data-preset="tl" type="button">↖ Top-left</button>
+              <button class="chip" data-preset="tr" type="button">↗ Top-right</button>
+              <button class="chip" data-preset="bl" type="button">↙ Bottom-left</button>
+              <button class="chip" data-preset="br" type="button">↘ Bottom-right</button>
+              <button class="chip" data-preset="bc" type="button">⬇ Bottom-centre</button>
+              <button class="chip" data-preset="none" type="button">No facecam</button>
+            </div>
+            <p class="muted" style="font-size:13px; margin-top:8px">Pick a preset, or <button class="btn ghost small" id="btn-open-editor" type="button">draw the boxes yourself</button> (also detects the facecam automatically).</p>
+          </div>
+          <div class="row">
+            <label class="field">Opening heading style
+              <select id="hook-style"><option value="impact" selected>Impact (bold pop)</option><option value="neon">Neon glow</option><option value="banner">Colour banner</option><option value="box">Black box</option></select>
+            </label>
+            <label class="field">Heading seconds<input id="hook-duration" type="number" min="2" max="60" value="8"></label>
+            <label class="check" style="padding-bottom:8px"><input id="hook-enabled" type="checkbox" checked> Opening heading</label>
+            <label class="check" style="padding-bottom:8px"><input id="fade-inout" type="checkbox"> Fade in/out</label>
+          </div>
+          <div class="row">
+            <label class="field" style="flex:1 1 260px">Focus (what should the clips be about?)<input id="focus-brief" type="text" placeholder="e.g. police chases and crashes, not the intro talk" maxlength="800"></label>
+          </div>
+          <div id="extras-mount"></div>
+        </div>
+      </details>
+
+      <div class="row" style="margin-top:18px">
+        <button class="btn primary big" id="btn-make" type="button" style="flex:1 1 240px">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M13 2 4.8 13.5H11L9.8 22l8.4-11.5H12z"/></svg>
+          Make clips
+        </button>
+        <button class="btn" id="btn-find" type="button">Preview best moments</button>
+      </div>
+      <p class="muted" style="font-size:13px; margin-top:8px">Make clips = download → local AI picks the best moments → captioned 9:16 clips. Everything happens on this machine.</p>
+    </section>
+
+    <!-- editor (box drawing / preview / words) -->
+    <section class="card" id="editor-card" hidden aria-labelledby="editor-title">
+      <div class="card-head"><h2 id="editor-title">Frame your moment</h2><span class="spacer"></span><button class="btn ghost small" id="btn-close-editor" type="button">Close</button></div>
+      <div id="editor-mount"></div>
+    </section>
+
+    <!-- results -->
+    <section class="card" id="results-card" hidden aria-labelledby="step3">
+      <div class="card-head"><span class="stepnum" aria-hidden="true">3</span><h2 id="step3">Results</h2><span class="spacer"></span>
+        <button class="btn danger" id="btn-cancel" type="button" hidden>Cancel</button></div>
+      <div class="progress-card" id="make-progress" hidden>
+        <div class="progress-line"><b id="make-stage" aria-live="polite">Starting…</b><span class="eta" id="make-eta"></span></div>
+        <div class="progress-track" role="progressbar" aria-labelledby="make-stage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="make-track"><div class="progress-fill" id="make-fill"></div></div>
+      </div>
+      <div class="results-grid" id="make-grid" aria-live="polite"></div>
+      <div class="bulkbar" id="make-bulk" hidden>
+        <label class="check"><input type="checkbox" id="make-select-all"> Select all</label>
+        <span class="muted" id="make-picked">0 selected</span>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn primary" id="make-zip" type="button">Download all as ZIP</button>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============================ LIBRARY ============================ -->
+  <section class="view" id="view-library" hidden aria-label="Library">
+    <section class="card">
+      <div class="card-head"><h2>Your clips</h2><span class="spacer"></span>
+        <button class="btn small" id="lib-refresh" type="button">Refresh</button>
+        <button class="btn small" id="lib-zip" type="button">Download all (ZIP)</button></div>
+      <div class="lib-head">
+        <input id="lib-search" type="search" placeholder="Search titles, hooks, hashtags…" aria-label="Search clips">
+        <label class="field" style="min-width:150px">Sort by
+          <select id="lib-sort"><option value="new" selected>Newest first</option><option value="best">Best score</option></select>
+        </label>
+      </div>
+      <div class="library-grid" id="library-grid" style="margin-top:16px"></div>
+      <div class="bulkbar" id="lib-bulk" hidden style="margin-top:14px">
+        <label class="check"><input type="checkbox" id="lib-select-all"> Select all</label>
+        <span class="muted" id="lib-picked">0 selected</span>
+        <span style="flex:1"></span>
+        <button class="btn primary" id="lib-zip-selected" type="button">Download selected (ZIP)</button>
+        <button class="btn danger" id="lib-delete-selected" type="button">Delete selected</button>
+      </div>
+    </section>
+  </section>
+
+  <!-- ============================ LIVE ============================ -->
+  <section class="view" id="view-live" hidden aria-label="Live clipping">
+    <section class="card">
+      <div class="card-head"><h2>Live clipping</h2><span class="spacer"></span><span class="muted">clips while the stream is on</span></div>
+      <div class="row">
+        <div style="flex:2 1 300px"><label class="field" for="live-url">Twitch channel or YouTube Live link</label>
+          <input id="live-url" type="text" placeholder="https://twitch.tv/name"></div>
+        <button class="btn primary" id="live-start" type="button">Start live clipping</button>
+      </div>
+      <p class="muted" style="font-size:13px">Records the stream, watches chat speed, and cuts a clip around every chat spike. Uses the layout and caption style chosen in Create.</p>
+      <div id="live-box" hidden style="margin-top:16px">
+        <div class="hype" style="margin-bottom:12px"><small>Chat hype</small><div class="meter"><i id="live-hype-fill"></i></div><b id="live-hype-label">quiet</b></div>
+        <div class="live-stats" id="live-stats"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="live-now" type="button">Clip the last 30 s</button>
+          <button class="btn danger" id="live-stop" type="button">Stop</button>
+        </div>
+        <div class="results-grid" id="live-grid" style="margin-top:16px"></div>
+      </div>
+    </section>
+    <section class="card" id="queue-card">
+      <div class="card-head"><h2>Queue</h2><span class="spacer"></span><button class="btn small" id="queue-refresh" type="button">Refresh</button></div>
+      <p class="muted" style="font-size:13px">Save video links for later; work runs one after another. Scheduled starts supported.</p>
+      <label class="field">Video links, one per line<textarea id="queue-urls" rows="3" placeholder="https://www.youtube.com/watch?v=…"></textarea></label>
+      <div class="row">
+        <label class="field">Start after (optional)<input id="queue-time" type="datetime-local"></label>
+        <button class="btn" id="queue-add" type="button">Add to queue</button>
+        <button class="btn ghost" id="queue-pause" type="button">Pause queue</button>
+      </div>
+      <div id="queue-list" style="margin-top:12px; display:flex; flex-direction:column; gap:8px"></div>
+    </section>
+  </section>
+
+  <!-- ============================ CREATORS ============================ -->
+  <section class="view" id="view-creators" hidden aria-label="Creators">
+    <section class="card">
+      <div class="card-head"><h2>Creators</h2><span class="spacer"></span><span class="muted">clips start by themselves when they go live</span></div>
+      <div class="row">
+        <div style="flex:2 1 300px"><label class="field" for="creator-url">Twitch name or channel link</label>
+          <input id="creator-url" type="text" placeholder="kaicenat or https://www.youtube.com/@name"></div>
+        <button class="btn primary" id="creator-add" type="button">Add creator</button>
+      </div>
+      <p class="muted" style="font-size:13px">Checked every minute. When a creator goes live, NeonClipping records and clips chat spikes with your chosen layout and caption style. One stream at a time.</p>
+      <div id="creator-list" style="margin-top:14px; display:flex; flex-direction:column; gap:8px"></div>
+    </section>
+  </section>
+</main>
+
+<!-- sticky mobile action -->
+<div class="mobile-bar" id="mobile-bar"><button class="btn primary big" id="btn-make-mobile" type="button">Make clips</button></div>
+
+<!-- settings drawer -->
+<div class="drawer-back" id="drawer-back" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <h2 id="drawer-title">Settings</h2>
+  <section>
+    <h3>Appearance</h3>
+    <div class="theme-seg" role="group" aria-label="Theme" style="align-self:flex-start">
+      <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+    </div>
+    <p class="muted">The choice is remembered on this device and follows your system in System mode.</p>
+  </section>
+  <section>
+    <h3>System check</h3>
+    <div class="ready-list" id="ready-list"></div>
+  </section>
+  <section>
+    <h3>AI model (local)</h3>
+    <label class="field">Ollama model<input id="llm-ollama-model" type="text" placeholder="llama3.2:3b" list="ollama-models"><datalist id="ollama-models"></datalist></label>
+    <p class="muted">Default llama3.2:3b. On a GPU with room, qwen2.5:7b or llama3.1:8b give smarter picks. Pull with <code>ollama pull qwen2.5:7b</code>.</p>
+    <div class="row"><button class="btn small" id="llm-save" type="button">Save model</button><span class="muted" id="llm-note"></span></div>
+  </section>
+  <section>
+    <h3>YouTube</h3>
+    <p class="muted">Blocked downloads (common on Colab and VPNs) usually need your login. Export cookies.txt with a browser extension ("Get cookies.txt LOCALLY") while signed in to YouTube.</p>
+    <label class="btn small" style="align-self:flex-start">Upload cookies.txt<input id="cookies-file" type="file" accept=".txt" hidden></label>
+    <span class="muted" id="cookies-note"></span>
+    <div class="row">
+      <label class="field">Browser login (this computer)
+        <select id="yt-browser"><option value="">Off</option><option value="firefox">Firefox</option><option value="edge">Edge</option><option value="chrome">Chrome</option><option value="brave">Brave</option><option value="opera">Opera</option><option value="vivaldi">Vivaldi</option></select>
+      </label>
+      <button class="btn small" id="yt-save" type="button" style="align-self:flex-end">Save</button>
+    </div>
+  </section>
+  <section>
+    <h3>Remote access</h3>
+    <p class="muted" id="remote-note">Off. Start the app with NEONCLIPPING_REMOTE=1 to open it from any device with a token link (printed on the server console).</p>
+  </section>
+  <section>
+    <h3>Data on this machine</h3>
+    <div id="usage-list"></div>
+    <div class="row">
+      <button class="btn small" id="cleanup-temp" type="button">Clean temp files</button>
+      <button class="btn small danger" id="cleanup-sources" type="button">Delete downloaded sources</button>
+    </div>
+    <p class="muted">Finished clips are never deleted by cleanup.</p>
+  </section>
+  <section>
+    <h3>Long streams with a free chatbot</h3>
+    <p class="muted">Split the transcript into parts, let any chatbot pick moments, paste the answers back. Nothing is sent anywhere by NeonClipping.</p>
+    <button class="btn small" id="open-aiparts" type="button">Open transcript parts</button>
+    <div id="aiparts-mount" style="margin-top:10px"></div>
+  </section>
+  <section>
+    <h3>Report a problem</h3>
+    <p class="muted">The report is redacted (links, names and IPs removed) and stays on this machine unless you send it.</p>
+    <div class="row">
+      <button class="btn small" id="report-download" type="button">Download diagnostics</button>
+      <a class="btn small" id="report-issue" target="_blank" rel="noopener">Open a GitHub issue</a>
+    </div>
+  </section>
+  <section>
+    <h3>About</h3>
+    <p class="muted">Free and open-source, 100% local processing. Based on <a href="https://github.com/iamajmeena/neonclipping" target="_blank" rel="noopener">NeonClipping by Ajay K Meena</a> (MIT).</p>
+    <p class="muted" id="supporters-note" hidden>Supported by: <span id="supporters-list"></span></p>
+  </section>
+</aside>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="/assets/app.js?v=plus1"></script>
+<script src="/assets/editor.js?v=plus1"></script>
+</body>
+</html>

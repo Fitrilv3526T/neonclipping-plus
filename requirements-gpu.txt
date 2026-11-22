@@ -1,0 +1,14 @@
+# Optional: GPU acceleration for the local speech model (faster-whisper / CTranslate2).
+#
+# The base requirements already use the GPU automatically when a CUDA-capable driver is
+# present (Colab T4 works out of the box). Install THIS file only on a normal PC where you
+# want GPU captions but have no system CUDA toolkit:
+#
+#     pip install -r requirements-gpu.txt
+#
+# It pins the CUDA 12 runtime libraries CTranslate2 loads at runtime. VRAM use:
+# large-v3-turbo int8_float16 ~ 6 GB; small ~ 2 GB; base ~ 1.5 GB. The app picks
+# automatically and always falls back to CPU when these are missing.
+nvidia-cublas-cu12>=12.4,<13
+nvidia-cudnn-cu12>=9.1,<10
+ctranslate2>=4.5,<5

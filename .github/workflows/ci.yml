@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    # The full local pipeline on a synthetic video: highlight finder, caption writer, layout
+    # graph, scene detection, export render, make-clips run, cancel, library, ZIP bundle,
+    # cookies validation, data cleanup, remote-token gate. NO GPU, NO internet needed.
+    name: smoke tests (no GPU, no network)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEONCLIPPING_NO_AUTOUPDATE: "1"
+      NEONCLIPPING_CPU: "1"
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m pip install -r requirements.txt httpx pytest
+      - name: Self-test
+        run: python scripts/selftest.py || true
+      - name: Smoke tests
+        run: python -m pytest tests/test_smoke.py -v
+
+  unit:
+    name: unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    timeout-minutes: 30
+    env:
+      NEONCLIPPING_NO_AUTOUPDATE: "1"
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: ffmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+      - name: ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg --no-progress -y
+      - run: python -m pip install -r requirements.txt -r requirements-live.txt
+      - run: python -m pytest tests/ -v --ignore=tests/test_smoke.py --ignore=tests/e2e.py --ignore=tests/e2e_features.py --ignore=tests/e2e_live.py --ignore=tests/e2e_make.py --ignore=tests/e2e_phone.py --ignore=tests/e2e_site.py --ignore=tests/e2e_style.py
+        continue-on-error: false
